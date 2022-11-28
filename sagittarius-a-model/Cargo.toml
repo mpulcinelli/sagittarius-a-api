@@ -1,0 +1,33 @@
+[package]
+name = "sagittarius-a-model"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "sagittarius_a_model"
+path = "src/lib.rs"
+
+[dependencies]
+aws-config = "0.51.0"
+aws-sdk-dynamodb = "0.21.0"
+tokio = { version = "1.22.0", features = ["full"] }
+tokio-stream = "0.1.11"
+lambda_runtime = "0.7.1"
+serde = "1.0.147"
+serde_json = "1.0.89"
+serde_derive = "1.0.147"
+log = "0.4.17"
+simple_logger = "4.0.0"
+uuid = { version = "1.2.2", features = ["v4"] }
+serde_dynamo = "4.0.9"
+env_logger = "0.10.0"
+dotenv = "0.15.0"
+chrono = "0.4.23"
+jwt = "0.16.0"
+sha2 = "0.10.6"
+hmac = "0.12.1"
+data-encoding = "2.3.2"
+ring = "0.16.20"
+aws-sdk-sesv2 = "0.21.0"

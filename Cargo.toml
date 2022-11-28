@@ -1,0 +1,10 @@
+[workspace]
+
+members = [
+    "sagittarius-a-main",
+    "sagittarius-a-utils",
+    "sagittarius-a-model",
+    "sagittarius-a-controller",
+    "sagittarius-a-service"
+]
+
