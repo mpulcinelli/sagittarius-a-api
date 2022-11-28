@@ -87,7 +87,8 @@ pub async fn ctrl_notify_users_item_compra_sku(
     event: &Value,
 ) -> Result<Value, LambdaGeneralError<Message>> {
     let tkn = event["token"].as_str().unwrap_or("").to_string();
-
+    let description = event["description"].as_str().unwrap_or("").to_string();
+    
     if !validate_token(&tkn).await.unwrap_or(false) {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
@@ -110,7 +111,7 @@ pub async fn ctrl_notify_users_item_compra_sku(
                     "mpulcinelli@gmail.com",
                     curr_user[0].email.as_str(),
                     "JOGO LIBERADO PARA SER JOGADO",
-                    "O JOGO ESTÁ LIBERADO PARA SER JOGADO!!!",
+                    description.as_str(),
                 )
                 .await?;
             }

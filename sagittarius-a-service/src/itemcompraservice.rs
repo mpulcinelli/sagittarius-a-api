@@ -133,7 +133,7 @@ pub async fn list_items_from_sku(
                 .table_name("item_compra")
                 .send()
                 .await                
-            }
+            },
             ReturnItemStatus::ReleasedForPlayer => {
                 client
                 .scan()
