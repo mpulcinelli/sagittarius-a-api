@@ -8,6 +8,7 @@ pub struct ItemCompra {
     pub sku: String,
     pub user_id: UserId,
     pub game_id: GameId,
+    pub is_released_for_player: bool
 }
 
 pub struct ItemCompraSKU {

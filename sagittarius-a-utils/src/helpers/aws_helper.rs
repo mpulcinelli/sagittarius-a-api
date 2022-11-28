@@ -1,5 +1,7 @@
-use aws_sdk_dynamodb::model::AttributeValue;
-use aws_config::meta::region::RegionProviderChain;
+use std::{
+    env
+};
+use aws_sdk_dynamodb::{model::AttributeValue, Region};
 use aws_sdk_dynamodb::Client;
 
 
@@ -26,8 +28,8 @@ pub fn attr_val_to_vec(value: &AttributeValue) -> Vec<String> {
 }
 
 pub async fn get_dynamo() -> Client {
-    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
-    let config = aws_config::from_env().region(region_provider).load().await;
+    let dynamo_region = env::var("DYNAMO_REGION").unwrap_or_default().to_string();
+    let config = aws_config::from_env().region(Region::new(dynamo_region)).load().await;
     let client = Client::new(&config);
     client
 }

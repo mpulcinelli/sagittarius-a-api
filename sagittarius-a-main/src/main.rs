@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 
 
 use sagittarius_a_controller::{
-    itemcompracontroller::{ctrl_get_all_items_from_sku, ctrl_register_new_item},
+    itemcompracontroller::{ctrl_get_all_items_from_sku, ctrl_register_new_item, ctrl_notify_users_item_compra_sku},
     matchcontroller::ctrl_register_match_result,
     usercontroller::{
         ctrl_add_new_user, ctrl_assign_game_to_user, ctrl_do_login_user, ctrl_get_all,
@@ -201,6 +201,18 @@ async fn handler(payload: LambdaEvent<Value>) -> Result<Value, LambdaError> {
 
             Ok(resp.unwrap())
         }
+        "doNotifyUsersItemCompra" => {
+            println!("[SAGITTARIUS-A]=[{}]", operation);
+            
+            let resp = ctrl_notify_users_item_compra_sku(&event).await.map_err(|err| {
+                println!(
+                    "[SAGITTARIUS-A]=[OPERATION: {} , ERROR: {:?}]",
+                    operation, err
+                );
+            });
+
+            Ok(resp.unwrap())
+        }        
 
 
         _ => {

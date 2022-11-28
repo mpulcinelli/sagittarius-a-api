@@ -355,6 +355,56 @@ pub async fn get_from_email(
     }
 }
 
+
+pub async fn get_from_id(
+    usr: &UserId,
+) -> Result<Vec<User>, LambdaGeneralError<Message>> {
+    let client = get_dynamo().await;
+
+    let resp = client
+        .scan()
+        .filter_expression("uid = :uid")
+        .expression_attribute_values(":uid", AttributeValue::S(usr.id.to_string()))
+        .table_name("user")
+        .send()
+        .await;
+
+    match resp {
+        Ok(r) => {
+            let result: Vec<User> = r
+                .items
+                .unwrap()
+                .into_iter()
+                .map(|f| {
+                    User::new(
+                        Some(attr_val_to_str(f.get("uid").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("user_name").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("password").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("email").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("validation_code").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("ultimo_login").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("data_cadastro").unwrap()).to_string()),
+                        Some(attr_val_to_bool(f.get("habilitado").unwrap())),
+                        Some(attr_val_to_str(f.get("first_name").unwrap()).to_string()),
+                        Some(attr_val_to_str(f.get("last_name").unwrap()).to_string()),
+                        None,
+                        Some(attr_val_to_vec(f.get("perfil").unwrap())),
+                    )
+                    .unwrap()
+                })
+                .collect();
+
+            Ok(result)
+        }
+        Err(z) => {
+            print!("{:?}", z);
+            let msg = get_message(vec!["00051".to_string()]).await?;
+            return Err(LambdaGeneralError { messages: msg });
+        }
+    }
+}
+
+
 pub async fn update_login_date(user: &UserId) -> Result<bool, LambdaGeneralError<Message>> {
     let client = get_dynamo().await;
     let now = Utc::now();

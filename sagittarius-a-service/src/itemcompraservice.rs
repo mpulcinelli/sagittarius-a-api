@@ -1,10 +1,10 @@
-use sagittarius_a_utils::helpers::error_helper::LambdaGeneralError;
-use sagittarius_a_utils::helpers::aws_helper::{attr_val_to_str, get_dynamo};
-use sagittarius_a_utils::helpers::message_helper::{get_message, Message};
-use sagittarius_a_utils::helpers::response_helper::{format_response, StatusCode};
 use sagittarius_a_model::gamemodel::GameId;
 use sagittarius_a_model::itemcompramodel::{ItemCompra, ItemCompraSKU};
 use sagittarius_a_model::usermodel::UserId;
+use sagittarius_a_utils::helpers::aws_helper::{attr_val_to_bool, attr_val_to_str, get_dynamo};
+use sagittarius_a_utils::helpers::error_helper::LambdaGeneralError;
+use sagittarius_a_utils::helpers::message_helper::{get_message, Message};
+use sagittarius_a_utils::helpers::response_helper::{format_response, StatusCode};
 
 use aws_sdk_dynamodb::model::AttributeValue;
 use serde_json::{json, Value};
@@ -14,9 +14,9 @@ pub async fn add_item(
     item_compra: Option<ItemCompra>,
 ) -> Result<Value, LambdaGeneralError<Message>> {
     let uuid = &Uuid::new_v4().to_string();
-    
+
     let client = get_dynamo().await;
-    
+
     let item = item_compra.unwrap();
 
     let qtd = count_item_from_user(&item).await?;
@@ -24,7 +24,6 @@ pub async fn add_item(
     if qtd > 0 {
         let msg = get_message(vec!["00059".to_string()]).await?;
         let resp = format_response(&json!({}), StatusCode::Forbidden, &msg).await?;
-
         return Ok(resp);
     }
 
@@ -86,20 +85,77 @@ pub async fn count_item_from_user(item: &ItemCompra) -> Result<usize, LambdaGene
     }
 }
 
+pub enum ReturnItemStatus {
+
+    ReleasedForPlayer,
+    NotReleasedForPlayer,
+    AllItems
+
+}
+
+
+pub async fn update_released_for_player(item: &ItemCompra) -> Result<bool, LambdaGeneralError<Message>> {
+    let client = get_dynamo().await;
+
+    let request = client
+        .update_item()
+        .table_name("item_compra")
+        .key("uid", AttributeValue::S(item.id.to_string()))
+        .update_expression("set is_released_for_player = :is_released_for_player")
+        .expression_attribute_values(":is_released_for_player", AttributeValue::Bool(true));
+
+    let result = request.send().await;
+    match result {
+        Ok(_) => {
+            return Ok(true);
+        }
+        Err(z) => {
+            print!("{:?}", z);
+            return Ok(false);
+        }
+    }
+}
+
 pub async fn list_items_from_sku(
     item: &ItemCompraSKU,
+    return_status: ReturnItemStatus
 ) -> Result<Vec<ItemCompra>, LambdaGeneralError<Message>> {
     let client = get_dynamo().await;
 
     let itm = item;
 
-    let resp = client
-        .scan()
-        .filter_expression("sku = :sku")
-        .expression_attribute_values(":sku", AttributeValue::S(itm.sku.to_string()))
-        .table_name("item_compra")
-        .send()
-        .await;
+       let resp = match return_status{
+            ReturnItemStatus::AllItems=>{
+                client
+                .scan()
+                .filter_expression("sku = :sku")
+                .expression_attribute_values(":sku", AttributeValue::S(itm.sku.to_string()))
+                .table_name("item_compra")
+                .send()
+                .await                
+            }
+            ReturnItemStatus::ReleasedForPlayer => {
+                client
+                .scan()
+                .filter_expression("sku = :sku and is_released_for_player = :is_released_for_player")
+                .expression_attribute_values(":sku", AttributeValue::S(itm.sku.to_string()))
+                .expression_attribute_values(":is_released_for_player", AttributeValue::Bool(true))
+                .table_name("item_compra")
+                .send()
+                .await
+            },
+            ReturnItemStatus::NotReleasedForPlayer => {
+                client
+                .scan()
+                .filter_expression("sku = :sku and is_released_for_player = :is_released_for_player")
+                .expression_attribute_values(":sku", AttributeValue::S(itm.sku.to_string()))
+                .expression_attribute_values(":is_released_for_player", AttributeValue::Bool(false))
+                .table_name("item_compra")
+                .send()
+                .await                
+            },
+        };
+
 
     match resp {
         Ok(r) => {
@@ -113,6 +169,9 @@ pub async fn list_items_from_sku(
                     user_id: UserId {
                         id: attr_val_to_str(f.get("user_id").unwrap()).to_string(),
                     },
+                    is_released_for_player: attr_val_to_bool(
+                        f.get("is_released_for_player").unwrap(),
+                    ),
                     game_id: GameId {
                         id: attr_val_to_str(f.get("game_id").unwrap()).to_string(),
                     },
