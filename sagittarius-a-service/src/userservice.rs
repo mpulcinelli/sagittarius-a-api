@@ -2,7 +2,7 @@ use sagittarius_a_utils::helpers::aws_helper::{attr_val_to_bool, attr_val_to_str
 use sagittarius_a_utils::helpers::email_helper::send_email;
 use sagittarius_a_utils::helpers::encryption_helper::encrypt;
 use sagittarius_a_utils::helpers::error_helper::LambdaGeneralError;
-use sagittarius_a_utils::helpers::jwt_helper::generate_user_token;
+use sagittarius_a_utils::helpers::access_controll_helper::generate_user_token;
 use sagittarius_a_utils::helpers::message_helper::{get_message, get_message_with_fields, DictFieldVal, Message};
 use sagittarius_a_utils::helpers::response_helper::{format_response, StatusCode};
 use sagittarius_a_model::gamemodel::GameId;

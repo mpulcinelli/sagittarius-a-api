@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use sagittarius_a_utils::helpers::{
     error_helper::LambdaGeneralError,
-    jwt_helper::validate_token,
+    access_controll_helper::{validate_token, AccessLevel},
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
 };
@@ -24,7 +24,7 @@ use sagittarius_a_service::{
 pub async fn ctrl_get_all(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
     let tkn = event["token"].as_str().unwrap_or("").to_string();
 
-    if !validate_token(&tkn).await.unwrap_or(false) {
+    if !validate_token(&tkn, AccessLevel::ADMIN).await.unwrap_or(false) {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);
@@ -61,6 +61,14 @@ pub async fn ctrl_add_new_user(event: &Value) -> Result<Value, LambdaGeneralErro
 }
 
 pub async fn ctrl_remove_user(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
+    let tkn = event["token"].as_str().unwrap_or("").to_string();
+
+    if !validate_token(&tkn, AccessLevel::ADMIN).await.unwrap_or(false) {
+        let msg = get_message(vec!["00022".to_string()]).await?;
+        let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
+        return Ok(r);
+    }
+
     let uid = event["uid"].as_str().unwrap_or("");
 
     let user_to_delete = Some(UserId {

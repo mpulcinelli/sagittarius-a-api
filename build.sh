@@ -5,22 +5,22 @@ RUST_TARGET="x86_64-unknown-linux-musl" # corresponding with the above, set this
 RUST_VERSION="latest" # Set this to a specific version of rust you want to compile for, or to latest if you want the latest stable version.
 PROJECT_NAME="sagittarius-a-api"
 
-buildbin(){
+sag_build_bin(){
     rm -r -f ./target && cargo build --release --target ${RUST_TARGET} # This line can be any cargo command
 }
 
-zipBinLamda(){
+sag_zip_bin(){
     rm -f lambda.zip && cp ./target/${RUST_TARGET}/release/sagittarius-a-main ./bootstrap  && zip lambda.zip bootstrap && rm bootstrap
 }
 
-awsUploadLambda(){
+sag_aws_upload_lambda(){
     aws lambda update-function-code --function-name sagittarius-a-user --zip-file fileb://lambda.zip --output json && rm -f lambda.zip
 }
 
-full(){
-    buildbin
-    zipBinLamda
-    awsUploadLambda
+sag_full_deploy(){
+    sag_build_bin
+    sag_zip_bin
+    sag_aws_upload_lambda
 }
 
 setupMuslLibs(){

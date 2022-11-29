@@ -6,7 +6,7 @@ use sagittarius_a_utils::helpers::{
     error_helper::LambdaGeneralError,
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
-    jwt_helper::validate_token_checking_user,
+    access_controll_helper::validate_token_checking_user,
 
 };
 use sagittarius_a_model::{

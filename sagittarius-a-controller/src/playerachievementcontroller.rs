@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 
 use sagittarius_a_utils::helpers::{
     error_helper::LambdaGeneralError,
-    jwt_helper::{validate_token_checking_user},
+    access_controll_helper::{validate_token_checking_user},
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
 

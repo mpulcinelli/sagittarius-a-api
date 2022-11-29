@@ -9,7 +9,7 @@ use sagittarius_a_model::{
 use sagittarius_a_utils::helpers::{
     email_helper,
     error_helper::LambdaGeneralError,
-    jwt_helper::{validate_token, validate_token_checking_user},
+    access_controll_helper::{validate_token, validate_token_checking_user, AccessLevel},
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
 };
@@ -60,7 +60,7 @@ pub async fn ctrl_get_all_items_from_sku(
     let tkn = event["token"].as_str().unwrap_or("").to_string();
     let count = event["count"].as_str().unwrap_or("0").to_string();
 
-    if !validate_token(&tkn).await.unwrap_or(false) {
+    if !validate_token(&tkn, AccessLevel::PLAYER).await.unwrap_or(false) {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);
@@ -89,7 +89,7 @@ pub async fn ctrl_notify_users_item_compra_sku(
     let tkn = event["token"].as_str().unwrap_or("").to_string();
     let description = event["description"].as_str().unwrap_or("").to_string();
     
-    if !validate_token(&tkn).await.unwrap_or(false) {
+    if !validate_token(&tkn, AccessLevel::PLAYER).await.unwrap_or(false) {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);
