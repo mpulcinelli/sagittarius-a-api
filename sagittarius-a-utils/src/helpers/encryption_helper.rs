@@ -1,3 +1,7 @@
+use std::{
+    env
+};
+
 use data_encoding::HEXUPPER;
 
 use ring::error::{self};
@@ -5,12 +9,11 @@ use ring::{digest, pbkdf2};
 use std::num::NonZeroU32;
 
 fn get_salt() -> [u8; 64] {
-    [
-        1, 2, 3, 4, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2,
-        3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2,
-        3, 4, 5, 6,
-    ]
+    let bytes_to_salt = env::var("ENCRYPT_SALT").unwrap_or_default().to_string();
+    let byte4: [u8;64] = bytes_to_salt.as_bytes().try_into().expect("failed to load");
+    byte4
 }
+
 
 pub fn encrypt(password: String) -> Result<String, error::Unspecified> {
     const CREDENTIAL_LEN: usize = digest::SHA512_OUTPUT_LEN;
