@@ -2,29 +2,29 @@ use chrono::Utc;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-
+use sagittarius_a_model::{
+    gamemodel::GameId,
+    usermodel::{User, UserCredential, UserId, UserValidation},
+};
 use sagittarius_a_utils::helpers::{
+    access_controll_helper::{validate_token, AccessCredential, AccessLevel},
     error_helper::LambdaGeneralError,
-    access_controll_helper::{validate_token, AccessLevel},
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
 };
-use sagittarius_a_model::{
-    gamemodel::GameId,
-    usermodel::{User, UserCredential, UserId, UserValidation}    
-};
 
-use sagittarius_a_service::{
-    userservice::{
-        add_new_user, assign_game, do_login, do_recover_password_f1, do_recover_password_f2,
-        do_recover_password_invalid, get_all, get_validation_code, remove_user, validate_user_code,
-    }    
+use sagittarius_a_service::userservice::{
+    add_new_user, assign_game, do_login, do_recover_password_f1, do_recover_password_f2,
+    do_recover_password_invalid, get_all, get_validation_code, remove_user, validate_user_code,
 };
 
 pub async fn ctrl_get_all(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
     let tkn = event["token"].as_str().unwrap_or("").to_string();
 
-    if !validate_token(&tkn, AccessLevel::ADMIN).await.unwrap_or(false) {
+    if !validate_token(&tkn, AccessLevel::ADMIN)
+        .await
+        .unwrap_or(false)
+    {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);
@@ -63,21 +63,42 @@ pub async fn ctrl_add_new_user(event: &Value) -> Result<Value, LambdaGeneralErro
 pub async fn ctrl_remove_user(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
     let tkn = event["token"].as_str().unwrap_or("").to_string();
 
-    if !validate_token(&tkn, AccessLevel::ADMIN).await.unwrap_or(false) {
+    let access_credential = AccessCredential::new(&tkn);
+
+    if access_credential.access_level.contains(&AccessLevel::ADMIN) {
+        let uid = event["uid"].as_str().unwrap_or("");
+
+        let user_to_delete = Some(UserId {
+            id: uid.to_string(),
+        });
+
+        let result = remove_user(user_to_delete).await.unwrap();
+
+        Ok(result)
+    } else if access_credential
+        .access_level
+        .contains(&AccessLevel::PLAYER)
+    {
+        let uid = event["uid"].as_str().unwrap_or("");
+
+        if access_credential.id == uid {
+            let user_to_delete = Some(UserId {
+                id: uid.to_string(),
+            });
+
+            let result = remove_user(user_to_delete).await.unwrap();
+
+            return Ok(result);
+        } else {
+            let msg = get_message(vec!["00022".to_string()]).await?;
+            let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
+            return Ok(r);
+        }
+    } else {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);
     }
-
-    let uid = event["uid"].as_str().unwrap_or("");
-
-    let user_to_delete = Some(UserId {
-        id: uid.to_string(),
-    });
-
-    let result = remove_user(user_to_delete).await.unwrap();
-
-    Ok(result)
 }
 
 pub async fn ctrl_do_login_user(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {

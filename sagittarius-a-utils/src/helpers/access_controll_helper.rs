@@ -7,6 +7,7 @@ use sha2::Sha384;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+#[derive(Debug, PartialEq)]
 pub enum AccessLevel {
     PLAYER,
     ADMIN,
@@ -97,52 +98,19 @@ pub async fn validate_token(
     token: &String,
     access_level: AccessLevel,
 ) -> Result<bool, error::Unspecified> {
-    if token.is_empty() {
-        return Ok(false);
-    }
 
-    let key: Hmac<Sha384> = Hmac::new_from_slice(b"KEY_APP_00001").unwrap();
-    let token_str = token.as_str();
+    let access_credential = AccessCredential::new(token);
 
-    let claims: BTreeMap<String, String> = token_str.verify_with_key(&key).unwrap();
-
-    if claims.len() != 4 {
-        return Ok(false);
-    }
-
-    if !claims.contains_key("id")
-        || !claims.contains_key("user_name")
-        || !claims.contains_key("perfil")
-        || !claims.contains_key("data_exp")
-    {
-        return Ok(false);
-    }
-
-    if claims["id"].is_empty()
-        || claims["user_name"].is_empty()
-        || claims["perfil"].is_empty()
-        || claims["data_exp"].is_empty()
-    {
-        return Ok(false);
-    }
-
-    println!("[SAGITTARIUS-A]={}]", claims["perfil"]);
+    println!("[SAGITTARIUS-A]={:?}]", access_credential.access_level);
 
     let access = match access_level {
         AccessLevel::PLAYER => {
-            if claims["perfil"].contains("PLAYER") || claims["perfil"].contains("ADMIN") {
-                true
-            } else {
-                false
-            }
+            access_credential
+                .access_level
+                .contains(&AccessLevel::PLAYER)
+                || access_credential.access_level.contains(&AccessLevel::ADMIN)
         }
-        AccessLevel::ADMIN => {
-            if claims["perfil"].contains("ADMIN") {
-                true
-            } else {
-                false
-            }
-        }
+        AccessLevel::ADMIN => access_credential.access_level.contains(&AccessLevel::ADMIN),
         AccessLevel::NONE => false,
     };
 
@@ -150,8 +118,8 @@ pub async fn validate_token(
         return Ok(false);
     };
 
-    if claims["data_exp"] != "INF" {
-        let data_exp = DateTime::<Utc>::from_str(claims["data_exp"].as_str()).unwrap();
+    if access_credential.data_exp != "INF" {
+        let data_exp = DateTime::<Utc>::from_str(access_credential.data_exp.as_str()).unwrap();
 
         if data_exp < Utc::now() {
             return Ok(false);
@@ -161,43 +129,102 @@ pub async fn validate_token(
     return Ok(true);
 }
 
-pub async fn get_user_profile(token: &String) -> Result<Vec<AccessLevel>, error::Unspecified> {
-    if token.is_empty() {
-        return Ok(vec![AccessLevel::NONE]);
+#[derive(Debug)]
+pub struct AccessCredential {
+    pub token: String,
+    pub id: String,
+    pub user_name: String,
+    pub perfil: String,
+    pub data_exp: String,
+    pub access_level: Vec<AccessLevel>,
+}
+
+impl AccessCredential {
+    pub fn new(token: &String) -> AccessCredential {
+        if token.is_empty() {
+            AccessCredential {
+                data_exp: String::new(),
+                id: String::new(),
+                perfil: String::new(),
+                token: String::new(),
+                user_name: String::new(),
+                access_level: vec![AccessLevel::NONE],
+            };
+        }
+
+        let key: Hmac<Sha384> = Hmac::new_from_slice(b"KEY_APP_00001").unwrap();
+        let token_str = token.as_str();
+
+        let claims: BTreeMap<String, String> = token_str.verify_with_key(&key).unwrap();
+
+        if claims.len() != 4 {
+            AccessCredential {
+                data_exp: String::new(),
+                id: String::new(),
+                perfil: String::new(),
+                token: String::new(),
+                user_name: String::new(),
+                access_level: vec![AccessLevel::NONE],
+            };
+        }
+
+        if !claims.contains_key("id")
+            || !claims.contains_key("user_name")
+            || !claims.contains_key("perfil")
+            || !claims.contains_key("data_exp")
+        {
+            AccessCredential {
+                data_exp: String::new(),
+                id: String::new(),
+                perfil: String::new(),
+                token: String::new(),
+                user_name: String::new(),
+                access_level: vec![AccessLevel::NONE],
+            };
+        }
+
+        if claims["id"].is_empty()
+            || claims["user_name"].is_empty()
+            || claims["perfil"].is_empty()
+            || claims["data_exp"].is_empty()
+        {
+            AccessCredential {
+                data_exp: String::new(),
+                id: String::new(),
+                perfil: String::new(),
+                token: String::new(),
+                user_name: String::new(),
+                access_level: vec![AccessLevel::NONE],
+            };
+        }
+
+        if claims["perfil"].contains("PLAYER") {
+            return AccessCredential {
+                data_exp: claims["data_exp"].to_string(),
+                id: claims["id"].to_string(),
+                perfil: claims["perfil"].to_string(),
+                token: String::from(token_str),
+                user_name: claims["user_name"].to_string(),
+                access_level: vec![AccessLevel::PLAYER],
+            };
+        } else if claims["perfil"].contains("ADMIN") {
+            return AccessCredential {
+                data_exp: claims["data_exp"].to_string(),
+                id: claims["id"].to_string(),
+                perfil: claims["perfil"].to_string(),
+                token: String::from(token_str),
+                user_name: claims["user_name"].to_string(),
+                access_level: vec![AccessLevel::ADMIN, AccessLevel::PLAYER],
+            };
+        } else {
+            return AccessCredential {
+                data_exp: String::new(),
+                id: String::new(),
+                perfil: String::new(),
+                token: String::new(),
+                user_name: String::new(),
+                access_level: vec![AccessLevel::NONE],
+            };
+        }
     }
-
-    let key: Hmac<Sha384> = Hmac::new_from_slice(b"KEY_APP_00001").unwrap();
-    let token_str = token.as_str();
-
-    let claims: BTreeMap<String, String> = token_str.verify_with_key(&key).unwrap();
-
-    if claims.len() != 4 {
-        return Ok(vec![AccessLevel::NONE]);
-    }
-
-    if !claims.contains_key("id")
-        || !claims.contains_key("user_name")
-        || !claims.contains_key("perfil")
-        || !claims.contains_key("data_exp")
-    {
-        return Ok(vec![AccessLevel::NONE]);
-    }
-
-    if claims["id"].is_empty()
-        || claims["user_name"].is_empty()
-        || claims["perfil"].is_empty()
-        || claims["data_exp"].is_empty()
-    {
-        return Ok(vec![AccessLevel::NONE]);
-    }
-
-    if claims["perfil"].contains("PLAYER") {
-        return Ok(vec![AccessLevel::PLAYER]);
-    } else if claims["perfil"].contains("ADMIN") {
-        return Ok(vec![AccessLevel::ADMIN, AccessLevel::PLAYER]);
-    }else{
-        return Ok(vec![AccessLevel::NONE]);
-    }
-
-    
 }
