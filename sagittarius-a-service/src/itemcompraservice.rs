@@ -32,6 +32,7 @@ pub async fn add_item(
         .table_name("item_compra")
         .item("uid", AttributeValue::S(String::from(uuid)))
         .item("sku", AttributeValue::S(String::from(item.sku.to_string())))
+        .item("is_released_for_player", AttributeValue::Bool(false))
         .item(
             "user_id",
             AttributeValue::S(String::from(item.user_id.id.to_string())),

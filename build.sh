@@ -1,7 +1,10 @@
 # TOKEN GIT - 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
 
 LAMBDA_ARCH="linux/amd64" # set this to either linux/arm64 for ARM functions, or linux/amd64 for x86 functions.
-RUST_TARGET="x86_64-unknown-linux-musl" # corresponding with the above, set this to aarch64 or x86_64-unknown-linux-gnu for ARM or x86 functions.
+# aarch64-unknown-linux-gnu 
+# x86_64-unknown-linux-musl
+# corresponding with the above, set this to aarch64 or x86_64-unknown-linux-gnu for ARM or x86 functions.
+RUST_TARGET="x86_64-unknown-linux-musl"
 RUST_VERSION="latest" # Set this to a specific version of rust you want to compile for, or to latest if you want the latest stable version.
 PROJECT_NAME="sagittarius-a-api"
 

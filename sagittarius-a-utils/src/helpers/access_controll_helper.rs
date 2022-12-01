@@ -77,6 +77,7 @@ pub async fn generate_user_token(
     claims.insert("id", &*usr.id);
     claims.insert("user_name", &*usr.user_name);
     let jsn_perfil = serde_json::to_string(&*usr.perfil).unwrap_or("".to_string());
+    println!("[SAGITTARIUS-A]=[{}]", jsn_perfil);
     claims.insert("perfil", &jsn_perfil);
 
     let data_cadastro_now: String;
@@ -100,8 +101,6 @@ pub async fn validate_token(
 ) -> Result<bool, error::Unspecified> {
 
     let access_credential = AccessCredential::new(token);
-
-    println!("[SAGITTARIUS-A]={:?}]", access_credential.access_level);
 
     let access = match access_level {
         AccessLevel::PLAYER => {
@@ -198,14 +197,14 @@ impl AccessCredential {
             };
         }
 
-        if claims["perfil"].contains("PLAYER") {
+        if claims["perfil"].contains("ADMIN") && claims["perfil"].contains("PLAYER"){
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
                 id: claims["id"].to_string(),
                 perfil: claims["perfil"].to_string(),
                 token: String::from(token_str),
                 user_name: claims["user_name"].to_string(),
-                access_level: vec![AccessLevel::PLAYER],
+                access_level: vec![AccessLevel::ADMIN, AccessLevel::PLAYER],
             };
         } else if claims["perfil"].contains("ADMIN") {
             return AccessCredential {
@@ -214,7 +213,16 @@ impl AccessCredential {
                 perfil: claims["perfil"].to_string(),
                 token: String::from(token_str),
                 user_name: claims["user_name"].to_string(),
-                access_level: vec![AccessLevel::ADMIN, AccessLevel::PLAYER],
+                access_level: vec![AccessLevel::ADMIN],
+            };
+        } else if claims["perfil"].contains("PLAYER") {
+            return AccessCredential {
+                data_exp: claims["data_exp"].to_string(),
+                id: claims["id"].to_string(),
+                perfil: claims["perfil"].to_string(),
+                token: String::from(token_str),
+                user_name: claims["user_name"].to_string(),
+                access_level: vec![AccessLevel::PLAYER],
             };
         } else {
             return AccessCredential {
