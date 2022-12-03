@@ -1,5 +1,3 @@
-# TOKEN GIT - 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
-
 LAMBDA_ARCH="linux/amd64" # set this to either linux/arm64 for ARM functions, or linux/amd64 for x86 functions.
 # aarch64-unknown-linux-gnu 
 # x86_64-unknown-linux-musl

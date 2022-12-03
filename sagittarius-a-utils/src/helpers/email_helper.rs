@@ -1,8 +1,11 @@
 use crate::helpers::error_helper::LambdaGeneralError;
-use aws_config::meta::region::RegionProviderChain;
+//use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_dynamodb::Region;
 use aws_sdk_sesv2::model::{Body, Content, Destination, EmailContent, Message};
 use aws_sdk_sesv2::Client;
-
+use std::{
+    env
+};
 use super::message_helper::get_message;
 
 pub async fn send_email(
@@ -11,8 +14,8 @@ pub async fn send_email(
     subject: &str,
     message: &str,
 ) -> Result<String, LambdaGeneralError<super::message_helper::Message>> {
-    let region_provider = RegionProviderChain::default_provider().or_else("us-east-1");
-    let config = aws_config::from_env().region(region_provider).load().await;
+    let ses_region = env::var("SES_REGION").unwrap_or_default();
+    let config = aws_config::from_env().region(Region::new(ses_region)).load().await;
     let client = Client::new(&config);
 
     let dest = Destination::builder().to_addresses(to).build();

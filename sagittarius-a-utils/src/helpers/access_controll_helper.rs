@@ -22,6 +22,10 @@ use sagittarius_a_model::usermodel::{User, UserId};
 
 use jwt::SignWithKey;
 
+use crate::helpers::encryption_helper::encrypt_content;
+
+use super::encryption_helper::decrypt_content;
+
 pub async fn validate_token_checking_user(
     token: &String,
     user_id: &UserId,
@@ -50,7 +54,7 @@ pub async fn validate_token_checking_user(
         return Ok(false);
     }
 
-    if claims["id"] != user_id.id {
+    if decrypt_content(claims["id"].clone()).unwrap() != user_id.id {
         return Ok(false);
     }
 
@@ -74,20 +78,25 @@ pub async fn generate_user_token(
 ) -> Result<String, error::Unspecified> {
     let key: Hmac<Sha384> = Hmac::new_from_slice(b"KEY_APP_00001").unwrap();
     let mut claims = BTreeMap::new();
-    claims.insert("id", &*usr.id);
-    claims.insert("user_name", &*usr.user_name);
+    
+    claims.insert("id", encrypt_content(usr.id.clone()).unwrap());
+    
+    claims.insert("user_name", encrypt_content(usr.user_name.clone()).unwrap());
+    
     let jsn_perfil = serde_json::to_string(&*usr.perfil).unwrap_or("".to_string());
+    
     println!("[SAGITTARIUS-A]=[{}]", jsn_perfil);
-    claims.insert("perfil", &jsn_perfil);
+    
+    claims.insert("perfil", encrypt_content(jsn_perfil).unwrap());
 
     let data_cadastro_now: String;
 
     if !expires {
         data_cadastro_now = "INF".to_string();
-        claims.insert("data_exp", &data_cadastro_now);
+        claims.insert("data_exp", data_cadastro_now);
     } else {
         data_cadastro_now = format!("{}", Utc::now() + Duration::minutes(duration_in_minutes));
-        claims.insert("data_exp", &data_cadastro_now);
+        claims.insert("data_exp", data_cadastro_now);
     }
 
     let token_str = claims.sign_with_key(&key).unwrap();
@@ -101,6 +110,8 @@ pub async fn validate_token(
 ) -> Result<bool, error::Unspecified> {
 
     let access_credential = AccessCredential::new(token);
+
+    println!("[SAGITTARIUS-A]=[validate_token() : ERROR: {:?}]", access_credential);
 
     let access = match access_level {
         AccessLevel::PLAYER => {
@@ -196,32 +207,34 @@ impl AccessCredential {
                 access_level: vec![AccessLevel::NONE],
             };
         }
+        
+        let tmp_perfil = decrypt_content(claims["perfil"].clone()).unwrap();
 
-        if claims["perfil"].contains("ADMIN") && claims["perfil"].contains("PLAYER"){
+        if tmp_perfil.contains("ADMIN") && tmp_perfil.contains("PLAYER"){
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
-                id: claims["id"].to_string(),
-                perfil: claims["perfil"].to_string(),
+                id: decrypt_content(claims["id"].to_string()).unwrap(),
+                perfil: decrypt_content(claims["perfil"].to_string()).unwrap(),
                 token: String::from(token_str),
-                user_name: claims["user_name"].to_string(),
+                user_name: decrypt_content(claims["user_name"].to_string()).unwrap(),
                 access_level: vec![AccessLevel::ADMIN, AccessLevel::PLAYER],
             };
-        } else if claims["perfil"].contains("ADMIN") {
+        } else if tmp_perfil.contains("ADMIN") {
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
-                id: claims["id"].to_string(),
-                perfil: claims["perfil"].to_string(),
+                id: decrypt_content(claims["id"].to_string()).unwrap(),
+                perfil: decrypt_content(claims["perfil"].to_string()).unwrap(),
                 token: String::from(token_str),
-                user_name: claims["user_name"].to_string(),
+                user_name: decrypt_content(claims["user_name"].to_string()).unwrap(),
                 access_level: vec![AccessLevel::ADMIN],
             };
-        } else if claims["perfil"].contains("PLAYER") {
+        } else if tmp_perfil.contains("PLAYER") {
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
-                id: claims["id"].to_string(),
-                perfil: claims["perfil"].to_string(),
+                id: decrypt_content(claims["id"].to_string()).unwrap(),
+                perfil: decrypt_content(claims["perfil"].to_string()).unwrap(),
                 token: String::from(token_str),
-                user_name: claims["user_name"].to_string(),
+                user_name: decrypt_content(claims["user_name"].to_string()).unwrap(),
                 access_level: vec![AccessLevel::PLAYER],
             };
         } else {
