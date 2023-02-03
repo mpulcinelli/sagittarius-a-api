@@ -1,12 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            image 'rust:latest'
-        }
-    }
+    agent any
+
     stages {
         stage('Build') {
             steps {
+                sh 'rustup default stable'
                 sh 'cargo build --release'
             }
         }
