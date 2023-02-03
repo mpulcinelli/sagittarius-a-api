@@ -1,24 +1,20 @@
 use chrono::Utc;
 use serde_json::{json, Value};
 
+use sagittarius_a_model::{
+    gamemodel::GameId, playerachievement::PlayerAchievement, usermodel::UserId,
+};
 use sagittarius_a_utils::helpers::{
+    access_controll_helper::{ AccessLevel, AccessCredential, validate_credential},
     error_helper::LambdaGeneralError,
-    access_controll_helper::{validate_token_checking_user},
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
-
-};
-use sagittarius_a_model::{
-    gamemodel::GameId,
-       
-    usermodel::UserId, playerachievement::PlayerAchievement,
 };
 
 use sagittarius_a_service::{
-    playerachievementservice::{add_achievement, verify_item_achieved}
+    playerachievementservice::{add_achievement, verify_item_achieved},
+    userservice::id_existis,
 };
-
-
 
 pub async fn ctrl_verify_achievement(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
     let token = event["token"].as_str().unwrap_or("").to_string();
@@ -26,9 +22,14 @@ pub async fn ctrl_verify_achievement(event: &Value) -> Result<Value, LambdaGener
         id: event["user_id"].as_str().unwrap_or("0").to_string(),
     };
 
-    if !validate_token_checking_user(&token, &usr_id)
+    let exist = id_existis(&usr_id).await.unwrap_or(false);
+    
+    let mut access = AccessCredential::new(&token);
+    access.set_id_to_validate(&usr_id.id);
+
+    if !validate_credential(&access, AccessLevel::PLAYERVALIDATION)
         .await
-        .unwrap_or(false)
+        .unwrap_or(false) || !exist
     {
         let msg = get_message(vec!["00056".to_string(), "00045".to_string()]).await?;
         let resp = format_response(&json!({}), StatusCode::Forbidden, &msg).await?;
@@ -46,28 +47,36 @@ pub async fn ctrl_verify_achievement(event: &Value) -> Result<Value, LambdaGener
         user_id: usr_id,
         tipo: event["tipo"].as_str().unwrap_or("NULL").to_string(),
         timestamp: data_cadastro_now,
-        item: event["achievement_item"].as_str().unwrap_or("0").to_string()
+        item: event["achievement_item"]
+            .as_str()
+            .unwrap_or("0")
+            .to_string(),
     };
 
     let result = verify_item_achieved(&new_achievement).await?;
 
     let msg = get_message(vec!["00066".to_string()]).await?;
-    let resp = format_response(&json!({"len":result}), StatusCode::Ok, &msg).await?;
+    let resp = format_response(&json!({ "len": result }), StatusCode::Ok, &msg).await?;
 
     return Ok(resp);
-
-
 }
 
-pub async fn ctrl_register_new_player_achievement(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
+pub async fn ctrl_register_new_player_achievement(
+    event: &Value,
+) -> Result<Value, LambdaGeneralError<Message>> {
     let token = event["token"].as_str().unwrap_or("").to_string();
     let usr_id = UserId {
         id: event["user_id"].as_str().unwrap_or("0").to_string(),
     };
 
-    if !validate_token_checking_user(&token, &usr_id)
+    let exist = id_existis(&usr_id).await.unwrap_or(false);
+    
+    let mut access = AccessCredential::new(&token);
+    access.set_id_to_validate(&usr_id.id);
+
+    if !validate_credential(&access, AccessLevel::PLAYERVALIDATION)
         .await
-        .unwrap_or(false)
+        .unwrap_or(false) || !exist
     {
         let msg = get_message(vec!["00056".to_string(), "00045".to_string()]).await?;
         let resp = format_response(&json!({}), StatusCode::Forbidden, &msg).await?;
@@ -85,7 +94,10 @@ pub async fn ctrl_register_new_player_achievement(event: &Value) -> Result<Value
         user_id: usr_id,
         tipo: event["tipo"].as_str().unwrap_or("NULL").to_string(),
         timestamp: data_cadastro_now,
-        item: event["achievement_item"].as_str().unwrap_or("0").to_string()
+        item: event["achievement_item"]
+            .as_str()
+            .unwrap_or("0")
+            .to_string(),
     });
 
     let result = add_achievement(new_achievement).await?;

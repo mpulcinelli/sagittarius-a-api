@@ -6,7 +6,7 @@ use sagittarius_a_utils::helpers::{
     error_helper::LambdaGeneralError,
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
-    access_controll_helper::validate_token_checking_user,
+    access_controll_helper::{AccessLevel, AccessCredential, validate_credential},
 
 };
 use sagittarius_a_model::{
@@ -14,7 +14,7 @@ use sagittarius_a_model::{
 };
 
 use sagittarius_a_service::{
-    matchservice::add_result
+    matchservice::add_result, userservice::id_existis
 };
 
 
@@ -26,9 +26,15 @@ pub async fn ctrl_register_match_result(
         id: event["user_id"].as_str().unwrap_or("0").to_string(),
     };
 
-    if !validate_token_checking_user(&token, &usr_id)
+    let exist = id_existis(&usr_id).await.unwrap_or(false);
+    
+    let mut access = AccessCredential::new(&token);
+    access.set_id_to_validate(&usr_id.id);
+
+
+    if !validate_credential(&access, AccessLevel::PLAYERVALIDATION)
         .await
-        .unwrap_or(false)
+        .unwrap_or(false) || !exist
     {
         let msg = get_message(vec!["00044".to_string(), "00045".to_string()]).await?;
         let resp = format_response(&json!({}), StatusCode::Forbidden, &msg).await?;

@@ -9,7 +9,7 @@ use sagittarius_a_model::{
 use sagittarius_a_utils::helpers::{
     email_helper,
     error_helper::LambdaGeneralError,
-    access_controll_helper::{validate_token, validate_token_checking_user, AccessLevel},
+    access_controll_helper::{AccessLevel, validate_credential, AccessCredential},
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
 };
@@ -18,7 +18,7 @@ use sagittarius_a_service::{
     itemcompraservice::{
         add_item, list_items_from_sku, update_released_for_player, ReturnItemStatus,
     },
-    userservice::get_from_id,
+    userservice::{get_from_id, id_existis},
 };
 
 pub async fn ctrl_register_new_item(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
@@ -26,18 +26,20 @@ pub async fn ctrl_register_new_item(event: &Value) -> Result<Value, LambdaGenera
     let usr_id = UserId {
         id: event["user_id"].as_str().unwrap_or("0").to_string(),
     };
+    
+    let exist = id_existis(&usr_id).await.unwrap_or(false);
+    
+    let mut access = AccessCredential::new(&token);
+    access.set_id_to_validate(&usr_id.id);
 
-    if !validate_token_checking_user(&token, &usr_id)
+    if !validate_credential(&access,  AccessLevel::PLAYERVALIDATION)
         .await
-        .unwrap_or(false)
+        .unwrap_or(false) || !exist
     {
         let msg = get_message(vec!["00056".to_string(), "00045".to_string()]).await?;
         let resp = format_response(&json!({}), StatusCode::Forbidden, &msg).await?;
         return Ok(resp);
     }
-
-    // let now = Utc::now();
-    // let data_cadastro_now: String = format!("{}", now);
 
     let new_item = Some(ItemCompra {
         id: "".to_string(),
@@ -60,11 +62,14 @@ pub async fn ctrl_get_all_items_from_sku(
     let tkn = event["token"].as_str().unwrap_or("").to_string();
     let count = event["count"].as_str().unwrap_or("0").to_string();
 
-    if !validate_token(&tkn, AccessLevel::PLAYER).await.unwrap_or(false) {
+    let access = AccessCredential::new(&tkn);
+
+    if !validate_credential(&access, AccessLevel::PLAYER).await.unwrap_or(false) {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);
     }
+
     let item = ItemCompraSKU {
         sku: event["sku"].as_str().unwrap_or("0").to_string(),
     };
@@ -90,7 +95,9 @@ pub async fn ctrl_notify_users_item_compra_sku(
     let description = event["description"].as_str().unwrap_or("").to_string();
     let subject = event["subject"].as_str().unwrap_or("").to_string();
     
-    if !validate_token(&tkn, AccessLevel::PLAYER).await.unwrap_or(false) {
+    let access = AccessCredential::new(&tkn);
+    
+    if !validate_credential(&access, AccessLevel::PLAYER).await.unwrap_or(false) {
         let msg = get_message(vec!["00022".to_string()]).await?;
         let r = format_response(&json!({}), StatusCode::BadRequest, &msg).await?;
         return Ok(r);

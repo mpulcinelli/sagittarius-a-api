@@ -29,6 +29,7 @@ async fn main() -> Result<(), LambdaError> {
 
 async fn handler(payload: LambdaEvent<Value>) -> Result<Value, LambdaError> {
     let (event, _context) = payload.into_parts();
+    
     let operation = event["op"].as_str().unwrap_or("invalid");
 
     set_lang(event["lang"].as_str().unwrap_or("en-us").to_string());

@@ -1,0 +1,10 @@
+[package]
+name = "sagittarius-a-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-rt = "2.7.0"
+sagittarius-a-model ={ path = "../sagittarius-a-model"}
+sagittarius-a-service ={ path = "../sagittarius-a-service"}
+sagittarius-a-utils = { path = "../sagittarius-a-utils"}

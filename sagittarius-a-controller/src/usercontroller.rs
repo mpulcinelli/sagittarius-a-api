@@ -7,7 +7,7 @@ use sagittarius_a_model::{
     usermodel::{User, UserCredential, UserId, UserValidation},
 };
 use sagittarius_a_utils::helpers::{
-    access_controll_helper::{validate_token, AccessCredential, AccessLevel},
+    access_controll_helper::{validate_credential, AccessCredential, AccessLevel},
     error_helper::LambdaGeneralError,
     message_helper::{get_message, Message},
     response_helper::{format_response, StatusCode},
@@ -21,7 +21,9 @@ use sagittarius_a_service::userservice::{
 pub async fn ctrl_get_all(event: &Value) -> Result<Value, LambdaGeneralError<Message>> {
     let tkn = event["token"].as_str().unwrap_or("").to_string();
 
-    if !validate_token(&tkn, AccessLevel::ADMIN)
+    let access = AccessCredential::new(&tkn);
+
+    if !validate_credential(&access, AccessLevel::ADMIN)
         .await
         .unwrap_or(false)
     {

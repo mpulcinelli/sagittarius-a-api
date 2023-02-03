@@ -11,6 +11,7 @@ use std::str::FromStr;
 pub enum AccessLevel {
     PLAYER,
     ADMIN,
+    PLAYERVALIDATION,
     NONE,
 }
 pub enum ValidationType {
@@ -26,50 +27,91 @@ use crate::helpers::encryption_helper::encrypt_content;
 
 use super::encryption_helper::decrypt_content;
 
-pub async fn validate_token_checking_user(
-    token: &String,
-    user_id: &UserId,
-) -> Result<bool, error::Unspecified> {
-    if token.is_empty() {
-        return Ok(false);
-    }
 
-    let key: Hmac<Sha384> = Hmac::new_from_slice(b"KEY_APP_00001").unwrap();
-    let token_str = token.as_str();
+// pub async fn validate_token(
+//     token: &String,
+//     access_level: AccessLevel,
+// ) -> Result<bool, error::Unspecified> {
 
-    let claims: BTreeMap<String, String> = token_str.verify_with_key(&key).unwrap_or_default();
+//     let access_credential = AccessCredential::new(token);
 
-    if claims.len() < 3 {
-        return Ok(false);
-    }
+//     println!("[SAGITTARIUS-A]=[validate_token() : ERROR: {:?}]", access_credential);
 
-    if !claims.contains_key("id")
-        || !claims.contains_key("user_name")
-        || !claims.contains_key("perfil")
-    {
-        return Ok(false);
-    }
+//     let access = match access_level {
+//         AccessLevel::PLAYER => {
+//             access_credential
+//                 .access_level
+//                 .contains(&AccessLevel::PLAYER)
+//                 || access_credential.access_level.contains(&AccessLevel::ADMIN)
+//         }
+//         AccessLevel::PLAYERVALIDATION => {
+//             false
+//         },
+//         AccessLevel::ADMIN => access_credential.access_level.contains(&AccessLevel::ADMIN),
+//         AccessLevel::NONE => false,
+//     };
 
-    if claims["id"].is_empty() || claims["user_name"].is_empty() || claims["perfil"].is_empty() {
-        return Ok(false);
-    }
+//     if !access {
+//         return Ok(false);
+//     };
 
-    if decrypt_content(claims["id"].clone()).unwrap() != user_id.id {
-        return Ok(false);
-    }
+//     if access_credential.data_exp != "INF" {
+//         let data_exp = DateTime::<Utc>::from_str(access_credential.data_exp.as_str()).unwrap();
 
-    // let usr = UserId {
-    //     id: claims["id"].to_string(),
-    // };
+//         if data_exp < Utc::now() {
+//             return Ok(false);
+//         }
+//     }
 
-    // let exist = id_existis(&usr).await.unwrap();
+//     return Ok(true);
+// }
 
-    // if !exist {
-    //     return Ok(false);
-    // }
 
-    return Ok(true);
-}
+
+// pub async fn validate_token_checking_user(
+//     token: &String,
+//     user_id: &UserId,
+// ) -> Result<bool, bool> {
+//     if token.is_empty() {
+//         return Ok(false);
+//     }
+
+//     let key: Hmac<Sha384> = Hmac::new_from_slice(b"KEY_APP_00001").unwrap();
+//     let token_str = token.as_str();
+
+//     let claims: BTreeMap<String, String> = token_str.verify_with_key(&key).unwrap_or_default();
+
+//     if claims.len() < 3 {
+//         return Err(false);
+//     }
+
+//     if !claims.contains_key("id")
+//         || !claims.contains_key("user_name")
+//         || !claims.contains_key("perfil")
+//     {
+//         return Err(false);
+//     }
+
+//     if claims["id"].is_empty() || claims["user_name"].is_empty() || claims["perfil"].is_empty() {
+//         return Err(false);
+//     }
+
+//     if decrypt_content(claims["id"].clone()).unwrap() != user_id.id {
+//         return Err(false);
+//     }
+
+//     // let usr = UserId {
+//     //     id: claims["id"].to_string(),
+//     // };
+
+//     // let exist = id_existis(&usr).await.unwrap();
+
+//     // if !exist {
+//     //     return Ok(false);
+//     // }
+
+//     return Ok(true);
+// }
 
 pub async fn generate_user_token(
     usr: &User,
@@ -104,23 +146,25 @@ pub async fn generate_user_token(
     Ok(token_str)
 }
 
-pub async fn validate_token(
-    token: &String,
-    access_level: AccessLevel,
-) -> Result<bool, error::Unspecified> {
 
-    let access_credential = AccessCredential::new(token);
+pub async fn validate_credential(credential: &AccessCredential, access_level: AccessLevel) -> Result<bool,  error::Unspecified> {
 
-    println!("[SAGITTARIUS-A]=[validate_token() : ERROR: {:?}]", access_credential);
+    println!("[SAGITTARIUS-A]=[validate_token() : ERROR: {:?}]", credential);
 
     let access = match access_level {
         AccessLevel::PLAYER => {
-            access_credential
+            credential
                 .access_level
                 .contains(&AccessLevel::PLAYER)
-                || access_credential.access_level.contains(&AccessLevel::ADMIN)
+                || credential.access_level.contains(&AccessLevel::ADMIN)
         }
-        AccessLevel::ADMIN => access_credential.access_level.contains(&AccessLevel::ADMIN),
+        AccessLevel::PLAYERVALIDATION => {
+            let is_player = credential.access_level.contains(&AccessLevel::PLAYER);
+            let is_id_equal = credential.id == credential.id_to_validate;
+            
+            is_player && is_id_equal
+        },
+        AccessLevel::ADMIN => credential.access_level.contains(&AccessLevel::ADMIN),
         AccessLevel::NONE => false,
     };
 
@@ -128,8 +172,8 @@ pub async fn validate_token(
         return Ok(false);
     };
 
-    if access_credential.data_exp != "INF" {
-        let data_exp = DateTime::<Utc>::from_str(access_credential.data_exp.as_str()).unwrap();
+    if credential.data_exp != "INF" {
+        let data_exp = DateTime::<Utc>::from_str(credential.data_exp.as_str()).unwrap();
 
         if data_exp < Utc::now() {
             return Ok(false);
@@ -143,6 +187,7 @@ pub async fn validate_token(
 pub struct AccessCredential {
     pub token: String,
     pub id: String,
+    pub id_to_validate:String,
     pub user_name: String,
     pub perfil: String,
     pub data_exp: String,
@@ -150,11 +195,17 @@ pub struct AccessCredential {
 }
 
 impl AccessCredential {
+
+    pub fn set_id_to_validate(&mut self, id_to_validate:&str){
+        self.id_to_validate = id_to_validate.to_string();
+    }
+
     pub fn new(token: &String) -> AccessCredential {
         if token.is_empty() {
             AccessCredential {
                 data_exp: String::new(),
                 id: String::new(),
+                id_to_validate:String::new(),
                 perfil: String::new(),
                 token: String::new(),
                 user_name: String::new(),
@@ -171,6 +222,7 @@ impl AccessCredential {
             AccessCredential {
                 data_exp: String::new(),
                 id: String::new(),
+                id_to_validate:String::new(),
                 perfil: String::new(),
                 token: String::new(),
                 user_name: String::new(),
@@ -186,6 +238,7 @@ impl AccessCredential {
             AccessCredential {
                 data_exp: String::new(),
                 id: String::new(),
+                id_to_validate:String::new(),
                 perfil: String::new(),
                 token: String::new(),
                 user_name: String::new(),
@@ -201,6 +254,7 @@ impl AccessCredential {
             AccessCredential {
                 data_exp: String::new(),
                 id: String::new(),
+                id_to_validate:String::new(),
                 perfil: String::new(),
                 token: String::new(),
                 user_name: String::new(),
@@ -214,6 +268,7 @@ impl AccessCredential {
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
                 id: decrypt_content(claims["id"].to_string()).unwrap(),
+                id_to_validate:String::new(),
                 perfil: decrypt_content(claims["perfil"].to_string()).unwrap(),
                 token: String::from(token_str),
                 user_name: decrypt_content(claims["user_name"].to_string()).unwrap(),
@@ -223,6 +278,7 @@ impl AccessCredential {
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
                 id: decrypt_content(claims["id"].to_string()).unwrap(),
+                id_to_validate:String::new(),
                 perfil: decrypt_content(claims["perfil"].to_string()).unwrap(),
                 token: String::from(token_str),
                 user_name: decrypt_content(claims["user_name"].to_string()).unwrap(),
@@ -232,6 +288,7 @@ impl AccessCredential {
             return AccessCredential {
                 data_exp: claims["data_exp"].to_string(),
                 id: decrypt_content(claims["id"].to_string()).unwrap(),
+                id_to_validate:String::new(),
                 perfil: decrypt_content(claims["perfil"].to_string()).unwrap(),
                 token: String::from(token_str),
                 user_name: decrypt_content(claims["user_name"].to_string()).unwrap(),
@@ -241,6 +298,7 @@ impl AccessCredential {
             return AccessCredential {
                 data_exp: String::new(),
                 id: String::new(),
+                id_to_validate:String::new(),
                 perfil: String::new(),
                 token: String::new(),
                 user_name: String::new(),

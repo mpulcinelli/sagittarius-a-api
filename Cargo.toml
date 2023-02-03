@@ -5,6 +5,7 @@ members = [
     "sagittarius-a-utils",
     "sagittarius-a-model",
     "sagittarius-a-controller",
-    "sagittarius-a-service"
+    "sagittarius-a-service",
+    "sagittarius-a-test"
 ]
 
