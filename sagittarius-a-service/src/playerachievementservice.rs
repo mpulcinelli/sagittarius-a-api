@@ -3,7 +3,7 @@ use sagittarius_a_utils::helpers::error_helper::LambdaGeneralError;
 use sagittarius_a_utils::helpers::message_helper::{get_message, Message};
 use sagittarius_a_utils::helpers::response_helper::{format_response, StatusCode};
 use sagittarius_a_model::playerachievement::PlayerAchievement;
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::types::AttributeValue;
 use serde_json::{json, Value};
 use uuid::Uuid;
 

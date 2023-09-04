@@ -6,7 +6,7 @@ use sagittarius_a_utils::helpers::access_controll_helper::generate_user_token;
 use sagittarius_a_utils::helpers::message_helper::{get_message, get_message_with_fields, DictFieldVal, Message};
 use sagittarius_a_utils::helpers::response_helper::{format_response, StatusCode};
 use sagittarius_a_model::gamemodel::GameId;
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::types::AttributeValue;
 use chrono::Utc;
 use serde_json::json;
 use serde_json::Value;

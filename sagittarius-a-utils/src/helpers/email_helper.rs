@@ -1,11 +1,9 @@
 use crate::helpers::error_helper::LambdaGeneralError;
 //use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_dynamodb::Region;
-use aws_sdk_sesv2::model::{Body, Content, Destination, EmailContent, Message};
+use aws_sdk_dynamodb::config::Region;
+use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 use aws_sdk_sesv2::Client;
-use std::{
-    env
-};
+use std::env;
 use super::message_helper::get_message;
 
 pub async fn send_email(

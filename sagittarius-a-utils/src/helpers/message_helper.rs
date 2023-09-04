@@ -1,6 +1,6 @@
 use super::{error_helper::LambdaGeneralError, aws_helper::attr_val_to_str};
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_dynamodb::{model::AttributeValue, Client};
+use aws_sdk_dynamodb::{types::AttributeValue, Client};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 //use std::sync::Mutex;

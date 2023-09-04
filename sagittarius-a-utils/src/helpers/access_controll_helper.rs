@@ -19,7 +19,7 @@ pub enum ValidationType {
     ValidateUserInfo,
 }
 
-use sagittarius_a_model::usermodel::{User, UserId};
+use sagittarius_a_model::usermodel::User;
 
 use jwt::SignWithKey;
 

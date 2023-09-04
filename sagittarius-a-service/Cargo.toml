@@ -13,7 +13,7 @@ path = "src/lib.rs"
 sagittarius-a-model ={ path = "../sagittarius-a-model"}
 sagittarius-a-utils ={ path = "../sagittarius-a-utils"}
 
-aws-sdk-dynamodb = "0.21.0"
+aws-sdk-dynamodb = "0.30.0"
 serde = "1.0.148"
 serde_json = "1.0.89"
 serde_derive = "1.0.147"

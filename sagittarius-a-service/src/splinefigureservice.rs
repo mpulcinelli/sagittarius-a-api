@@ -1,4 +1,4 @@
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::types::AttributeValue;
 use serde_json::json;
 use serde_json::Value;
 

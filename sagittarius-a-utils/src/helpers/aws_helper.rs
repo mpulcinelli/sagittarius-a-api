@@ -1,7 +1,5 @@
-use std::{
-    env
-};
-use aws_sdk_dynamodb::{model::AttributeValue, Region};
+use std::env;
+use aws_sdk_dynamodb::{types::AttributeValue, config::Region};
 use aws_sdk_dynamodb::Client;
 
 
